@@ -647,8 +647,8 @@ while true
 %                 set(fig_handle, 'Position', [100, 100, 100+size(im,2), 100+size(im,1)]);
             imagesc(im_to_show);
             hold on;
-            resp_handle = imagesc(xs, ys, sampled_scores_display); colormap hsv;
-            alpha(resp_handle, 0.5);
+%            resp_handle = imagesc(xs, ys, sampled_scores_display); colormap hsv;
+%            alpha(resp_handle, 0.5);
             rectangle('Position',rect_position_vis, 'EdgeColor','g', 'LineWidth',2);
             text(10, 10, int2str(seq.frame), 'color', [0 1 1]);
             hold off;
