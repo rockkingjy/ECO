@@ -33,6 +33,7 @@ for sz_ind = 1:num_sizes
         img_samples{sz_ind}(:,:,:,scale_ind) = sample_patch(image, pos, img_sample_sz*scales(scale_ind), img_input_sz, gparams);
     end
 end
+% imshow(cell2mat(img_samples)) % show the img_samples images
 
 % Find the number of feature blocks and total dimensionality
 num_feature_blocks = 0;

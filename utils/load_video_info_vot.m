@@ -1,6 +1,6 @@
 function [seq, ground_truth] = load_video_info_vot()
 
-video_path = '/media/elab/sdd/data/VOT/vot2017/drone_flip';%drone_across';
+video_path = '/media/elab/sdd/data/VOT/vot2017/gymnastics3';%iceskater1';%road';%%girl';%flamingo1';%drone_across';
 ground_truth = dlmread([video_path '/groundtruth.txt']);
 
 seq.format = 'otb';

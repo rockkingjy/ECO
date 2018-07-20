@@ -1,7 +1,7 @@
 function [seq, ground_truth] = load_video_info_uav()
 
 video_path = '/media/elab/sdd/data/UAV123';
-file = 'wakeboard3';
+file = 'wakeboard1';%'bike1';%
 ground_truth = dlmread([video_path '/anno/UAV123/' file '.txt']);
 
 seq.format = 'otb';

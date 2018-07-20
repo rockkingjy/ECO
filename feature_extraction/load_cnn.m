@@ -20,7 +20,8 @@ if isfield(net.meta,'inputSize')
 end
 
 if size(net.meta.normalization.averageImage,1) > 1 || size(net.meta.normalization.averageImage,2) > 1
-    net.meta.normalization.averageImage = imresize(single(net.meta.normalization.averageImage), net.meta.normalization.imageSize(1:2));
+    net.meta.normalization.averageImage = imresize(single(net.meta.normalization.averageImage),...
+                                          net.meta.normalization.imageSize(1:2));
 end
 
 net.info = vl_simplenn_display(net);

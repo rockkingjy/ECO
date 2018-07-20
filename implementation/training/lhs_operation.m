@@ -2,7 +2,9 @@ function hf_out = lhs_operation(hf, samplesf, reg_filter, sample_weights)
 
 % This is the left-hand-side operation in Conjugate Gradient
 
-% Get sizes
+t1 = toc();
+
+% 1: Get sizes
 num_features = length(hf);
 filter_sz = zeros(num_features,2);
 for k = 1:num_features
@@ -13,11 +15,15 @@ block_inds = 1:num_features;
 block_inds(k1) = [];
 output_sz = [size(hf{k1},1), 2*size(hf{k1},2)-1];
 
+t2 = toc();
+disp(['update train time3_1_1 ' num2str(t2-t1)]);
+t1 = toc();
+
 % Compute the operation corresponding to the data term in the optimization
 % (blockwise matrix multiplications)
 %implements: A' diag(sample_weights) A f
 
-% sum over all features and feature blocks
+% 2: sum over all features and feature blocks
 sh = mtimesx(samplesf{k1}, permute(hf{k1}, [3 4 1 2]), 'speed');    % assumes the feature with the highest resolution is first
 pad_sz = cell(1,1,num_features);
 for k = block_inds
@@ -30,14 +36,22 @@ end
 % weight all the samples
 sh = bsxfun(@times,sample_weights,sh);
 
-% multiply with the transpose
+t2 = toc();
+disp(['update train time3_1_2 ' num2str(t2-t1)]);
+t1 = toc();
+
+% 3: multiply with the transpose
 hf_out = cell(1,1,num_features);
 hf_out{k1} = permute(conj(mtimesx(sh, 'C', samplesf{k1}, 'speed')), [3 4 2 1]);
 for k = block_inds
     hf_out{k} = permute(conj(mtimesx(sh(:,1,1+pad_sz{k}(1):end-pad_sz{k}(1), 1+pad_sz{k}(2):end), 'C', samplesf{k}, 'speed')), [3 4 2 1]);
 end
 
-% compute the operation corresponding to the regularization term (convolve
+t2 = toc();
+disp(['update train time3_1_3 ' num2str(t2-t1)]);
+t1 = toc();
+
+% 4: compute the operation corresponding to the regularization term (convolve
 % each feature dimension with the DFT of w, and the tramsposed operation)
 % add the regularization part
 % hf_conv = cell(1,1,num_features);
@@ -53,5 +67,9 @@ for k = 1:num_features
     % do final convolution and put toghether result
     hf_out{k} = hf_out{k} + convn(hf_conv(:,1:end-reg_pad,:), reg_filter{k}, 'valid');
 end
+
+
+t2 = toc();
+disp(['update train time3_1_4 ' num2str(t2-t1)]);
 
 end

@@ -3,7 +3,7 @@ function [x,resvec,state] = pcg_ccot(A,b,opts,M1,M2,ip,x0,state)
 % This is a modified version of Matlab's pcg function, that performs 
 % preconditioned conjugate gradient.
 
-
+t1 = toc();
 % tol = opts.tol;
 maxit = opts.maxit;
 
@@ -57,6 +57,9 @@ else
     relres = [];
 end
 
+t2 = toc();
+disp(['update train time3_1 ' num2str(t2-t1)]);
+t1 = toc();
 % loop over maxit iterations (unless convergence or failure)
 
 for ii = 1 : maxit
@@ -156,3 +159,7 @@ if nargout > 2
         state.r_prev = r_prev;
     end
 end
+
+
+t2 = toc();
+disp(['update train time3_2 ' num2str(t2-t1)]);

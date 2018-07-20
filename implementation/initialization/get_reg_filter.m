@@ -28,6 +28,7 @@ if params.use_reg_window
     
     % do the inverse transform, correct window minimum
     reg_window_sparse = real(ifft2(reg_window_dft));
+    min(reg_window_sparse(:))
     reg_window_dft(1,1) = reg_window_dft(1,1) - prod(sz) * min(reg_window_sparse(:)) + params.reg_window_min;
     reg_window_dft = fftshift(reg_window_dft);
     

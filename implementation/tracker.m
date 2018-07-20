@@ -98,7 +98,7 @@ switch params.search_area_shape
         img_sample_sz = [base_target_sz(1)*2 base_target_sz(2)*2]; % for testing
 end
 
-[features, global_fparams, feature_info] = init_features(features, global_fparams, is_color_image, img_sample_sz, 'odd_cells');
+[features, global_fparams, feature_info] = init_features(features, global_fparams, is_color_image, img_sample_sz, 'same');
 
 % Set feature info
 img_support_sz = feature_info.img_support_sz;
@@ -166,8 +166,8 @@ end
 % Construct spatial regularization filter
 reg_filter = cellfun(@(reg_window_edge) get_reg_filter(img_support_sz, base_target_sz, params, reg_window_edge), reg_window_edge, 'uniformoutput', false);
 
-% Compute the energy of the filter (used for preconditioner)
-reg_energy = cellfun(@(reg_filter) real(reg_filter(:)' * reg_filter(:)), reg_filter, 'uniformoutput', false);
+% Compute the energy of the filter (used for preconditioner)drone_flip
+reg_energy = cellfun(@(reg_filter) (reg_filter(:)' * reg_filter(:)), reg_filter, 'uniformoutput', false);
 
 if params.use_scale_filter
     [nScales, scale_step, scaleFactors, scale_filter, params] = init_scale_filter(params);
@@ -266,25 +266,39 @@ while true
         
         %translation search
         while iter <= params.refinement_iterations && any(old_pos ~= pos)
-            % Extract features at multiple resolutions
+            % 1: Extract features at multiple resolutions
             sample_pos = round(pos);
             det_sample_pos = sample_pos;
             sample_scale = currentScaleFactor*scaleFactors;
             xt = extract_features(im, sample_pos, sample_scale, features, global_fparams, feature_extract_info);
                         
-            % Project sample
+            t1 = toc();
+            disp(['localization time1: ' num2str(t1)]);
+
+            % 2: Project sample
             xt_proj = project_sample(xt, projection_matrix);
-            
-            % Do windowing of features
+            t2 = toc();
+            disp(['localization time2: ' num2str(t2-t1)]);
+
+            % 3: Do windowing of features
             xt_proj = cellfun(@(feat_map, cos_window) bsxfun(@times, feat_map, cos_window), xt_proj, cos_window, 'uniformoutput', false);
             
-            % Compute the fourier series
+            t3 = toc();
+            disp(['localization time3: ' num2str(t3-t2)]);
+
+            % 4: Compute the fourier series
             xtf_proj = cellfun(@cfft2, xt_proj, 'uniformoutput', false);
             
-            % Interpolate features to the continuous domain
+            t4 = toc();
+            disp(['localization time4: ' num2str(t4-t3)]);
+
+            % 5: Interpolate features to the continuous domain
             xtf_proj = interpolate_dft(xtf_proj, interp1_fs, interp2_fs);
             
-            % Compute convolution for each feature block in the Fourier domain
+            t5 = toc();
+            disp(['localization time5: ' num2str(t5-t4)]);
+
+            % 6: Compute convolution for each feature block in the Fourier domain
             % and the sum over all blocks.
             scores_fs_feat{k1} = sum(bsxfun(@times, hf_full{k1}, xtf_proj{k1}), 3);
             scores_fs_sum = scores_fs_feat{k1};
@@ -295,7 +309,10 @@ while true
                     scores_fs_feat{k};
             end
             
-            % Also sum over all feature blocks.
+            t6 = toc();
+            disp(['localization time6: ' num2str(t6-t5)]);
+
+            % 7: Also sum over all feature blocks.
             % Gives the fourier coefficients of the convolution response.
             scores_fs = permute(gather(scores_fs_sum), [1 2 4 3]);
             
@@ -315,7 +332,7 @@ while true
                 pos = max([1 1], min([size(im,1) size(im,2)], pos));
             end
             
-            % Do scale tracking with the scale filter
+            % Do scale tracking with the scale filtertraffic
             if nScales > 0 && params.use_scale_filter
                 scale_change_factor = scale_filter_track(im, pos, base_target_sz, currentScaleFactor, scale_filter, params);
             end 
@@ -330,6 +347,7 @@ while true
                 currentScaleFactor = max_scale_factor;
             end
             
+            disp(['localization time: ' num2str(toc()-t6)]);
             iter = iter + 1;
         end
     end
@@ -549,7 +567,11 @@ while true
             if params.use_gpu
                 [hf, res_norms, CG_state] = train_filter_gpu(hf, samplesf, yf, reg_filter, sample_weights, sample_energy, reg_energy, params, CG_opts, CG_state);
             else
+                t1 = toc();
                 [hf, res_norms, CG_state] = train_filter(hf, samplesf, yf, reg_filter, sample_weights, sample_energy, reg_energy, params, CG_opts, CG_state);
+
+                t2 = toc();
+                disp(['update train time:=========== ' num2str(t2-t1)]);
             end
         end
         
@@ -575,7 +597,9 @@ while true
     seq = report_tracking_result(seq, tracking_result);
     
     seq.time = seq.time + toc();
-    
+    disp(['update time: ' num2str(toc())]);
+
+    disp(['Frame:' num2str(seq.frame) ' FPS: ' num2str(1/toc())]);
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Visualization
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -647,8 +671,8 @@ while true
 %                 set(fig_handle, 'Position', [100, 100, 100+size(im,2), 100+size(im,1)]);
             imagesc(im_to_show);
             hold on;
-%            resp_handle = imagesc(xs, ys, sampled_scores_display); colormap hsv;
-%            alpha(resp_handle, 0.5);
+            resp_handle = imagesc(xs, ys, sampled_scores_display); colormap hsv;
+            alpha(resp_handle, 0.5);
             rectangle('Position',rect_position_vis, 'EdgeColor','g', 'LineWidth',2);
             text(10, 10, int2str(seq.frame), 'color', [0 1 1]);
             hold off;

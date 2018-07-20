@@ -1,6 +1,6 @@
 function [seq, ground_truth] = load_video_info_tlp()
 
-video_path = '/media/elab/sdd/data/TLP/Drone2';%dinosaur';%drone_across';
+video_path = '/media/elab/sdd/data/TLP/Sam';%Alladin';%dinosaur';%drone_across';
 ground_truth = dlmread([video_path '/groundtruth_rect.txt']);
 
 seq.format = 'otb';

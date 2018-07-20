@@ -21,8 +21,8 @@ ic_params.compressed_dim = 3;
 params.t_features = {
     struct('getFeature',@get_fhog,'fparams',hog_params),...
     ...struct('getFeature',@get_colorspace, 'fparams',grayscale_params),...
-    struct('getFeature',@get_table_feature, 'fparams',cn_params),...
-    struct('getFeature',@get_table_feature, 'fparams',ic_params),...
+    ...struct('getFeature',@get_table_feature, 'fparams',cn_params),...
+    ...struct('getFeature',@get_table_feature, 'fparams',ic_params),...
 };
 
 % Global feature parameters1s
@@ -48,7 +48,7 @@ params.nSamples = 30;                   % Maximum number of stored training samp
 params.sample_replace_strategy = 'lowest_prior';    % Which sample to replace when the memory is full
 params.lt_size = 0;                     % The size of the long-term memory (where all samples have equal weight)
 params.train_gap = 5;                   % The number of intermediate frames with no training (0 corresponds to training every frame)
-params.skip_after_frame = 10;           % After which frame number the sparse update scheme should start (1 is directly)
+params.skip_after_frame = 1;%10;           % After which frame number the sparse update scheme should start (1 is directly)
 params.use_detection_sample = true;     % Use the sample that was extracted at the detection stage also for learning
 
 % Factorized convolution parameters
@@ -88,12 +88,12 @@ params.interpolation_windowing = false;     % Do additional windowing on the Fou
 
 % Scale parameters for the translation model
 % Only used if: params.use_scale_filter = false
-params.number_of_scales = 7;            % Number of scales to run the detector
+params.number_of_scales = 5;            % Number of scales to run the detector
 params.scale_step = 1.01;               % The scale factor
 
 % Scale filter parameters
 % Only used if: params.use_scale_filter = true
-params.use_scale_filter = true;         % Use the fDSST scale filter or not (for speed)
+params.use_scale_filter = false;         % Use the fDSST scale filter or not (for speed)
 params.scale_sigma_factor = 1/16;       % Scale label function sigma
 params.scale_learning_rate = 0.025;		% Scale filter learning rate
 params.number_of_scales_filter = 17;    % Number of scales

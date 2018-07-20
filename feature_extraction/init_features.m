@@ -103,7 +103,8 @@ for k = 1:length(features)
         
         % compute the cell size of the layers (takes down-sampling factor
         % into account)
-        features{k}.fparams.cell_size = net_info_stride(1, features{k}.fparams.output_layer+1)' .* features{k}.fparams.downsample_factor';
+        features{k}.fparams.cell_size = net_info_stride(1, features{k}.fparams.output_layer+1)' ...
+                                        .* features{k}.fparams.downsample_factor';
         
         % this feature will always return a cell array
         features{k}.is_cell = true;
@@ -204,7 +205,8 @@ if cnn_feature_ind > 0
     net_stride = net_info_stride(:, features{cnn_feature_ind}.fparams.output_layer+1)';
     total_feat_sz = net_info.dataSize(1:2, features{cnn_feature_ind}.fparams.output_layer+1)';
     
-    shrink_number = max(2 * ceil((net_stride(end,:) .* total_feat_sz(end,:) - scaled_sample_sz) ./ (2 * net_stride(end,:))), 0);
+    shrink_number = max(2 * ceil((net_stride(end,:) .* total_feat_sz(end,:) - scaled_sample_sz) ...
+                        ./ (2 * net_stride(end,:))), 0);
     
     deepest_layer_sz = total_feat_sz(end,:) - shrink_number;
     scaled_support_sz = net_stride(end,:) .* deepest_layer_sz;
@@ -212,7 +214,8 @@ if cnn_feature_ind > 0
     % Calculate output size for each layer
     cnn_output_sz = round(bsxfun(@rdivide, scaled_support_sz, net_stride));
     features{cnn_feature_ind}.fparams.start_ind = floor((total_feat_sz - cnn_output_sz)/2) + 1;
-    features{cnn_feature_ind}.fparams.end_ind = features{cnn_feature_ind}.fparams.start_ind + cnn_output_sz - 1;
+    features{cnn_feature_ind}.fparams.end_ind = features{cnn_feature_ind}.fparams.start_ind ...
+                                                            + cnn_output_sz - 1;
     
     feature_info.img_support_sz = round(scaled_support_sz .* feature_info.img_sample_sz ./ scaled_sample_sz);
     
@@ -239,7 +242,8 @@ else
         
         % Check the size with the largest number of odd dimensions (choices in the
         % third dimension)
-        feature_sz_choices = floor(bsxfun(@rdivide, bsxfun(@plus, new_img_sample_sz, reshape(0:max_cell_size-1, 1, 1, [])), feature_info.min_cell_size));
+        feature_sz_choices = floor(bsxfun(@rdivide, bsxfun(@plus, new_img_sample_sz, ...
+                                reshape(0:max_cell_size-1, 1, 1, [])), feature_info.min_cell_size));
         num_odd_dimensions = sum(sum(mod(feature_sz_choices, 2) == 1, 1), 2);
         [~, best_choice] = max(num_odd_dimensions(:));
         pixels_added = best_choice - 1;
@@ -262,7 +266,8 @@ for k = 1:length(features)
         features{k}.img_sample_sz = feature_info.img_sample_sz(:)';
         
         % Set the data size based on the computed output size
-        feature_info.data_sz_block{k} = floor(bsxfun(@rdivide, cnn_output_sz, features{k}.fparams.downsample_factor'));
+        feature_info.data_sz_block{k} = floor(bsxfun(@rdivide, cnn_output_sz, ...
+                                            features{k}.fparams.downsample_factor'));
     else
         % implemented classic features always have the same sample and
         % support size
@@ -270,7 +275,8 @@ for k = 1:length(features)
         features{k}.img_input_sz = features{k}.img_sample_sz;
         
         % Set data size based on cell size
-        feature_info.data_sz_block{k} = floor(bsxfun(@rdivide, features{k}.img_sample_sz, features{k}.fparams.cell_size));
+        feature_info.data_sz_block{k} = floor(bsxfun(@rdivide, features{k}.img_sample_sz, ...
+                                            features{k}.fparams.cell_size));
     end
 end
 
