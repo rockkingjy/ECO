@@ -2,6 +2,7 @@ function [hf, res_norms, CG_state] = train_filter(hf, samplesf, yf, reg_filter, 
 
 % Do Conjugate gradient optimization of the filter.
 t1 = toc();
+
 % Construct the right hand side vector
 rhs_samplef = cellfun(@(xf) permute(mtimesx(sample_weights, 'T', xf, 'speed'), [3 4 2 1]), samplesf, 'uniformoutput', false);
 rhs_samplef = cellfun(@(xf, yf) bsxfun(@times, conj(xf), yf), rhs_samplef, yf, 'uniformoutput', false);
@@ -9,12 +10,14 @@ rhs_samplef = cellfun(@(xf, yf) bsxfun(@times, conj(xf), yf), rhs_samplef, yf, '
 t2 = toc();
 disp(['update train time1 ' num2str(t2-t1)]);
 t1 = toc();
+
 % Construct preconditioner
 diag_M = cellfun(@(m, reg_energy) (1-params.precond_reg_param) * bsxfun(@plus, params.precond_data_param * m, (1-params.precond_data_param) * mean(m,3)) + params.precond_reg_param*reg_energy, sample_energy, reg_energy, 'uniformoutput',false);
 
 t2 = toc();
 disp(['update train time2 ' num2str(t2-t1)]);
 t1 = toc();
+
 % do conjugate gradient
 [hf, res_norms, CG_state] = pcg_ccot(...
     @(x) lhs_operation(x, samplesf, reg_filter, sample_weights),...

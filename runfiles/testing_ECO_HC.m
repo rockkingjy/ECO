@@ -17,8 +17,16 @@ ic_params.useForColor = false;
 ic_params.cell_size = 4;
 ic_params.compressed_dim = 3;
 
+cnn_params.nn_name = 'imagenet-vgg-m-2048.mat'; % Name of the network
+cnn_params.output_layer = [3 14];               % Which layers to use
+cnn_params.downsample_factor = [2 1];           % How much to downsample each output layer
+cnn_params.compressed_dim = [16 64];            % Compressed dimensionality of each output layer
+cnn_params.input_size_mode = 'adaptive';        % How to choose the sample size
+cnn_params.input_size_scale = 1;                % Extra scale factor of the input samples to the network (1 is no scaling)
+
 % Which features to include
 params.t_features = {
+    struct('getFeature',@get_cnn_layers, 'fparams',cnn_params),...
     struct('getFeature',@get_fhog,'fparams',hog_params),...
     ...struct('getFeature',@get_colorspace, 'fparams',grayscale_params),...
     ...struct('getFeature',@get_table_feature, 'fparams',cn_params),...

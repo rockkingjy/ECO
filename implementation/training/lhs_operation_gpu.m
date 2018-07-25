@@ -2,7 +2,9 @@ function hf_out = lhs_operation_gpu(hf, samplesf, reg_filter, sample_weights)
 
 % This is the left-hand-side operation in Conjugate Gradient
 
-% Get sizes
+t1 = toc();
+
+% 1: Get sizes
 num_features = length(hf);
 filter_sz = zeros(num_features,2);
 for k = 1:num_features
@@ -10,34 +12,47 @@ for k = 1:num_features
 end
 [~, k1] = max(filter_sz(:,1));  % Index for the feature block with the largest spatial size
 block_inds = 1:num_features;
-block_inds(k1) = [];
-output_sz = [size(hf{k1},1), 2*size(hf{k1},2)-1];
+block_inds(k1) = []; % remove the max index
+output_sz = [size(hf{k1},1), 2 * size(hf{k1},2) - 1];
+
+t2 = toc();
+disp(['update train time3_1_1 ' num2str(t2-t1)]);
+t1 = toc();
 
 % Compute the operation corresponding to the data term in the optimization
 % (blockwise matrix multiplications)
 %implements: A' diag(sample_weights) A f
 
-% sum over all features and feature blocks
-sh = sum(bsxfun(@times, samplesf{k1}, hf{k1}), 3);    % assumes the feature with the highest resolution is first
+% 2: sum over all features and feature blocks
+sh = sum(bsxfun(@times, samplesf{k1}, hf{k1}), 3);
 pad_sz = cell(1,1,num_features);
-for k = block_inds
+for k = block_inds % add other features
     pad_sz{k} = (output_sz - [size(hf{k},1), 2*size(hf{k},2)-1]) / 2;
-    
-    sh(1+pad_sz{k}(1):end-pad_sz{k}(1), 1+pad_sz{k}(2):end,1,:) = ...
-        sh(1+pad_sz{k}(1):end-pad_sz{k}(1), 1+pad_sz{k}(2):end,1,:) + sum(bsxfun(@times, samplesf{k}, hf{k}), 3);
+    sh(1+pad_sz{k}(1): end-pad_sz{k}(1), 1+pad_sz{k}(2):end, 1, :) = ...
+        sh(1+pad_sz{k}(1):end-pad_sz{k}(1), 1+pad_sz{k}(2):end, 1, :) ...
+        + sum(bsxfun(@times, samplesf{k}, hf{k}), 3);
 end
-
 % weight all the samples and take conjugate
 sh = conj(bsxfun(@times,sample_weights,sh));
 
-% multiply with the transpose
+t2 = toc();
+disp(['update train time3_1_2 ' num2str(t2-t1)]);
+t1 = toc();
+
+% 3: multiply with the transpose
 hf_out = cell(1,1,num_features);
 hf_out{k1} = conj(sum(bsxfun(@times, sh, samplesf{k1}), 4));
-for k = block_inds
-    hf_out{k} = conj(sum(bsxfun(@times, sh(1+pad_sz{k}(1):end-pad_sz{k}(1), 1+pad_sz{k}(2):end,1,:), samplesf{k}), 4));
+for k = block_inds % do on other features
+    hf_out{k} = conj(sum(bsxfun(@times, ...
+        sh(1+pad_sz{k}(1):end-pad_sz{k}(1), 1+pad_sz{k}(2):end,1,:), ...
+        samplesf{k}), 4));
 end
 
-% compute the operation corresponding to the regularization term (convolve
+t2 = toc();
+disp(['update train time3_1_3 ' num2str(t2-t1)]);
+t1 = toc();
+
+% 4: compute the operation corresponding to the regularization term (convolve
 % each feature dimension with the DFT of w, and the tramsposed operation)
 % add the regularization part
 % hf_conv = cell(1,1,num_features);
@@ -51,7 +66,57 @@ for k = 1:num_features
     hf_conv = convn(hf_conv, reg_filter{k});
     
     % do final convolution and put toghether result
-    hf_out{k} = hf_out{k} + convn(hf_conv(:,1:end-reg_pad,:), reg_filter{k}, 'valid');
+    hf_out{k} = hf_out{k} + convn(hf_conv(:, 1:end-reg_pad, :), reg_filter{k}, 'valid');
 end
 
+t2 = toc();
+disp(['update train time3_1_4 ' num2str(t2-t1)]);
+
 end
+
+% 1 feature
+% update train time3_1_1 3.8e-05
+% update train time3_1_2 0.000209
+% update train time3_1_3 0.000136
+% update train time3_1_4 0.001811
+% 3 features
+% update train time3_1_1 8.3e-05
+% update train time3_1_2 0.001137
+% update train time3_1_3 0.000823
+% update train time3_1_4 0.015019
+% 1 feature -----------------------------------
+% samplesf: 1x1 cell - 25 x 13 x 10 x 30 gpuArray
+% hf:       1x1 cell - 25 x 13 x 10      gpuArray
+% sh:       25 x 13 x 1 x 30             gpuArray
+% hf_out:   1x1 cell - 25 x 13 x 10      gpuArray
+% sample_weights: 1 x 1 x 1 x 30         gpuArray
+% hf_conv:  27 x 25 x 10                 gpuArray
+
+% 3 features -----------------------------------
+% samplesf: 1x1x3 cell
+%           33 x 17 x 16 x 30
+%           9  x 5  x 64 x 30
+%           21 x 11 x 10 x 30
+% hf:       1x1x3 cell
+%           33 x 17 x 16
+%           9  x 5  x 64
+%           21 x 11 x 10
+% sh:       33 x 17 x 1  x 30
+% hf_out:   1x1x3 cell
+%           33 x 17 x 16
+%           9  x 5  x 64
+%           21 x 11 x 10
+% sample_weights: 1 x 1 x 1 x 30 
+% hf_conv:  23 x 23 x 10 
+
+% ---------------------------------------------
+% bsxfun(@times, A, B) = A .* B  % elements-wise multiplication
+% for different dimensions of A, B:
+% A = [1 0 3; 5 3 8; 2 4 6];
+% B = [2 3 7];
+% C = A.*B
+%    2     0    21
+%   10     9    56
+%    4    12    42
+
+% sum(A, dim) % returns the sum along dimension dim

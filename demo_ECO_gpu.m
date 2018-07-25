@@ -6,7 +6,8 @@
 setup_paths();
 
 % Load video information
-[seq, ground_truth] = load_video_info_vot();
+video_path = 'sequences/Crossing';
+[seq, ground_truth] = load_video_info(video_path);
 
 % Run ECO
 results = testing_ECO_gpu(seq);
