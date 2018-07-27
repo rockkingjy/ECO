@@ -347,7 +347,7 @@ while true
                 currentScaleFactor = max_scale_factor;
             end
             
-            disp(['localization time: ' num2str(toc()-t6)]);
+            disp(['localization time7: ' num2str(toc()-t6)]);
             iter = iter + 1;
         end
     end
